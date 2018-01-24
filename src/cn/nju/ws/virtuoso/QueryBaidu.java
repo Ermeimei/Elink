@@ -1,17 +1,19 @@
 package cn.nju.ws.virtuoso;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.RDFNode;
 
 import cn.nju.ws.config.ConfigureProperty;
+import cn.nju.ws.data.Entity;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoQueryExecution;
 import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
@@ -29,26 +31,59 @@ public class QueryBaidu {
 	}
 	public static void main(String[] args) throws IOException {
 		QueryBaidu.init();
-		QueryBaidu.queryBaiduBaikeAliasByUri();
+		String en = "http://baike.baidu.com/A2262927";
+		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
+		QueryBaidu.queryBaiduBaikeByUri(en,predicateObject);
+		Entity e = new Entity(en,predicateObject);
+		System.out.println(e);
+		System.out.println("*****************");
 	}
-	public static void queryBaiduBaikeByUri(String uri) {
+	public static void queryBaiduBaikeByUri(String uri,Map<String,List<String>> predicateObject) {
 		VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
-		String query = ConfigureProperty.BdBkPrefix + "select ?tag,?info_prop,?content where {{" + 
-		 "<" + uri + "> gsbaidu:openTag ?tag." +
-		 "} union {" +
-		 "<" + uri + "> gsbaidu:infoboxItem ?o." + 
-		 "?o ns1:description ?info_prop." +
-		 "?o gsbaidu:infoboxContent ?info_content." +
-		 "?info_content ns1:description ?content." +
-		 "}}limit 100";
+		String query = ConfigureProperty.BdBkPrefix + "select * where {" + 
+		 "<" + uri + "> ?p ?o.}";
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
 		ResultSet results = vqe.execSelect();
 		while (results.hasNext()) {
 			QuerySolution result = results.nextSolution();
-			RDFNode tag = result.get("tag");
-			RDFNode infoProp = result.get("info_prop");
-			RDFNode content = result.get("content");
-			System.out.println(tag + "\t" + infoProp + "\t" + content);	
+			String predicate = result.get("p").toString();
+			String object = result.get("o").toString();
+			if(predicate.indexOf("infoboxItem") == -1 && predicate.indexOf("page_url") == -1) {
+				if(predicate.lastIndexOf("#") != -1 ) {
+					predicate = predicate.substring(predicate.lastIndexOf("#")+1);
+				}
+				if(predicateObject.containsKey(predicate)) {
+	    			List<String> list = predicateObject.get(predicate);
+					list.add(object);
+	    		}
+	    		else {
+	    			List<String> list = new ArrayList<String>();
+					list.add(object);
+					predicateObject.put(predicate, list);
+	    		}
+			}
+		}
+		query = ConfigureProperty.BdBkPrefix + "select ?info_prop,?content where {" + 
+		"<" + uri + "> gsbaidu:infoboxItem ?o." + 
+		 "?o ns1:description ?info_prop." +
+		 "?o gsbaidu:infoboxContent ?info_content." +
+		 "?info_content ns1:description ?content." +
+		 "}limit 100";
+		vqe = VirtuosoQueryExecutionFactory.create(query, vg);
+		results = vqe.execSelect();
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			String predicate = result.get("info_prop").toString();
+			String object = result.get("content").toString();
+			if(predicateObject.containsKey(predicate)) {
+    			List<String> list = predicateObject.get(predicate);
+				list.add(object);
+    		}
+    		else {
+    			List<String> list = new ArrayList<String>();
+				list.add(object);
+				predicateObject.put(predicate, list);
+    		}
 		}
 	}
 	public static void queryBaiduBaikeByName(String name,List<String> bdbkEntities){
@@ -84,33 +119,52 @@ public class QueryBaidu {
 				RDFNode title = result.get("name");
 				RDFNode subtitle = result.get("p");
 				bdbkEntities.add(entity.toString() + "\t" + title.toString()+ "\t" + subtitle.toString());
-			//	System.out.println(entity.toString() + "\t" + title.toString()+ "\t" + subtitle.toString());	
+			//	flag = true;
+				//	System.out.println(entity.toString() + "\t" + title.toString()+ "\t" + subtitle.toString());	
+			}
+		}
+		if(!flag) {
+			query = ConfigureProperty.BdBkPrefix + "select * where {" + 
+					 "?s gsbaidu:alt_label ?name." +
+					 "?name bif:contains \"'" + name + "'\"." +
+					 "}limit 100";
+			vqe = VirtuosoQueryExecutionFactory.create(query, vg);
+			results = vqe.execSelect();
+			while (results.hasNext()) {
+				QuerySolution result = results.nextSolution();
+				RDFNode entity = result.get("s");
+				RDFNode alias = result.get("name");
+				bdbkEntities.add(entity.toString() + "\t" + alias.toString());
 			}
 		}
 	}
+	//用于生成百度百科词条别名，后期直接查询知识库。
 	public static void queryBaiduBaikeAliasByUri() throws IOException {
-		VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
 		int size = ConfigureProperty.BaiduLabelKeys.length;
-		String altLabel = "<http://ws.nju.edu.cn/geoscholar/baidu#alt_label>";
 		for(int i=0;i<size;i++) {
-			FileOutputStream out = new FileOutputStream(new File("alias" + i + ".ttl"));
-			String query = ConfigureProperty.BdBkPrefix + "select ?s ?content  where {" + 
-				//	 "<" + uri + "> gsbaidu:infoboxItem ?o." +
-					 "?s gsbaidu:infoboxItem ?o." +
-					 "?o ns1:description \"" + ConfigureProperty.BaiduLabelKeys[i] + "\"." + 
-					 "?o gsbaidu:infoboxContent ?info_content." +
-					 "?info_content ns1:description ?content." +
-					 "}";
-			//System.out.println(ConfigureProperty.BaiduLabelKeys[i]);
-			VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
-			ResultSet results = vqe.execSelect();
-			while (results.hasNext()) {
-				QuerySolution result = results.nextSolution();
-				StringBuffer sb = new StringBuffer();
-				sb.append("<" + result.get("s") +"> " + altLabel + " \""+result.get("content") + "\"@zh .\n");
-				out.write(sb.toString().getBytes("UTF-8"));
-			}
-			out.close();
+			queryBaiduBaikeAliasByUri(ConfigureProperty.BaiduLabelKeys[i]);
 		}
+	}
+	public static void queryBaiduBaikeAliasByUri(String key) throws IOException {
+		VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
+		String altLabel = "<http://ws.nju.edu.cn/geoscholar/baidu#alt_label>";
+		FileOutputStream out = new FileOutputStream(new File("alias_" + key + ".ttl"));
+		String query = ConfigureProperty.BdBkPrefix + "select ?s ?content  where {" + 
+				//	 "<" + uri + "> gsbaidu:infoboxItem ?o." +
+				"?s gsbaidu:infoboxItem ?o." +
+				"?o ns1:description \"" + key + "\"." + 
+				"?o gsbaidu:infoboxContent ?info_content." +
+				"?info_content ns1:description ?content." +
+				"}";
+			//System.out.println(ConfigureProperty.BaiduLabelKeys[i]);
+		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
+		ResultSet results = vqe.execSelect();
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			StringBuffer sb = new StringBuffer();
+			sb.append("<" + result.get("s") +"> " + altLabel + " \""+result.get("content") + "\"@zh .\n");
+			out.write(sb.toString().getBytes("UTF-8"));
+		}
+		out.close();
 	}
 }

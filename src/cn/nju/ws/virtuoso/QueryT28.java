@@ -1,7 +1,9 @@
 package cn.nju.ws.virtuoso;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.jena.query.Query;
@@ -12,6 +14,7 @@ import org.apache.jena.rdf.model.RDFNode;
 
 
 import cn.nju.ws.config.ConfigureProperty;
+import cn.nju.ws.data.Entity;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoQueryExecution;
 import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
@@ -27,6 +30,17 @@ public class QueryT28 {
 		usr = VirtGraphLoader.getUser();
 		psd = VirtGraphLoader.getPassword();
 	}
+	public static void main(String[] args) throws IOException {
+		QueryT28.init();
+		String en = "http://28/event#sponsor12004";
+		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
+		QueryT28.queryT28ByUri(en,predicateObject);
+		QueryT28.queryT28EventByUri(en,predicateObject);
+		Entity e = new Entity(en,predicateObject);
+		System.out.println(e);
+		System.out.println("*****************");
+		System.out.println(e.getPredicate("event"));
+	}
 	
 	public static Map<String,String> queryT28Sponsor(){
 		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
@@ -34,7 +48,7 @@ public class QueryT28 {
 				"?event event:sponsor ?sponsor." +
 				"?sponsor event:actor1name ?sponsor_name."+
 				"}"
-				+ "limit 100"
+			//	+ "limit 10"
 				;
 		Query sparql = QueryFactory.create(ConfigureProperty.T28Prefix+query);
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, vg);
@@ -78,7 +92,7 @@ public class QueryT28 {
 				"?event event:loc ?loc." +
 				"?loc event:actiongeo_fullname ?loc_name."+
 				"}"
-			//	+ "limit 100"
+		//		+ "limit 100"
 				;
 		Query sparql = QueryFactory.create(ConfigureProperty.T28Prefix+query);
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, vg);
@@ -94,7 +108,7 @@ public class QueryT28 {
 		return locTName;	
 	}
 	
-	public static Map<String,String> queryT28ByUri(String uri){
+	public static void queryT28ByUri(String uri,Map<String,List<String>> predicateObject){
 		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select * where {"+
 				"<" + uri + "> ?p ?o." +
@@ -102,18 +116,27 @@ public class QueryT28 {
 		Query sparql = QueryFactory.create(ConfigureProperty.T28Prefix+query);
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, vg);
 		ResultSet results = vqe.execSelect();
-		Map<String,String> predicateObject = new HashMap<String,String>();
 		while (results.hasNext()) {
 			QuerySolution result = results.nextSolution();
-			RDFNode predicate = result.get("p");
-			RDFNode object = result.get("o");
-			predicateObject.put(predicate.toString(),object.toString());
+			String predicate = result.get("p").toString();
+			if(predicate.lastIndexOf("#") != -1 ) {
+				predicate = predicate.substring(predicate.lastIndexOf("#")+1);
+			}
+			String object = result.get("o").toString();
+			if(predicateObject.containsKey(predicate)) {
+    			List<String> list = predicateObject.get(predicate);
+				list.add(object);
+    		}
+    		else {
+    			List<String> list = new ArrayList<String>();
+				list.add(object);
+				predicateObject.put(predicate, list);
+    		}
 		}
 		vqe.close();
-		return predicateObject;	
 	}
 	
-	public static Map<String,String> queryT28EventByUri(String uri){
+	public static void queryT28EventByUri(String uri,Map<String,List<String>> predicateObject){
 		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select * where {"+
 				"?event event:sponsor <" + uri + ">." +
@@ -122,16 +145,21 @@ public class QueryT28 {
 		Query sparql = QueryFactory.create(ConfigureProperty.T28Prefix+query);
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, vg);
 		ResultSet results = vqe.execSelect();
-		Map<String,String> predicateObject = new HashMap<String,String>();
 		while (results.hasNext()) {
 			QuerySolution result = results.nextSolution();
-			RDFNode predicate = result.get("event");
-			RDFNode object = result.get("sentence");
-			predicateObject.put(predicate.toString(),object.toString());
+		//	RDFNode predicate = result.get("event");
+			String predicate = "event";
+			String object = result.get("sentence").toString();
+			if(predicateObject.containsKey("event")) {
+    			List<String> list = predicateObject.get(predicate);
+				list.add(object);
+    		}
+    		else {
+    			List<String> list = new ArrayList<String>();
+				list.add(object);
+				predicateObject.put(predicate, list);
+    		}
 		}
 		vqe.close();
-		return predicateObject;	
 	}
-	
-	
 }

@@ -15,7 +15,7 @@ public class ConfigureProperty {
 	public static String BdBkVirtGraph;
 	public static String BdBkPrefix;
 	public static String GeonamesVirtGraph;
-	public static String GeonamesPreifx;
+	public static String GeonamesPrefix;
 	public static String T28VirtGraph;
 	public static String T28Prefix;
 	public static String WikidataVirtGraph;
@@ -32,7 +32,7 @@ public class ConfigureProperty {
         BdBkVirtGraph = pro.getProperty("BdBkVirtGraph");
         BdBkPrefix = pro.getProperty("BdBkPrefix");
         GeonamesVirtGraph = pro.getProperty("GeonamesVirtGraph");
-        GeonamesPreifx = pro.getProperty("GeonamesPreifx");
+        GeonamesPrefix = pro.getProperty("GeonamesPrefix");
         T28VirtGraph = pro.getProperty("T28VirtGraph");
         T28Prefix = pro.getProperty("T28Prefix");
         WikidataVirtGraph = pro.getProperty("WikidataVirtGraph");

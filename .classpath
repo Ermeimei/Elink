@@ -22,5 +22,6 @@
 	<classpathentry kind="lib" path="lib/xmlbeans-2.3.0.jar"/>
 	<classpathentry kind="lib" path="lib/OpenCC-Java-all-0.1.jar"/>
 	<classpathentry kind="lib" path="lib/jieba-analysis-1.0.2.jar"/>
+	<classpathentry kind="lib" path="lib/secondstring-20120620.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -33,6 +33,10 @@ public class QueryWiki {
 		}
 	}
 	public static void queryWikiDataByName(String name,Set<String> alias){
+		if(name.equals("中国")) {
+			alias.add("中华人民共和国");
+			return;
+		}
 		VirtGraph vg = new VirtGraph(ConfigureProperty.WikidataVirtGraph,url,usr,psd);
 		String query = "select distinct ?entity where {{"+
 				"?entity wkdt:altlabel_en \"" + name + "\"@en.}" +
@@ -47,9 +51,6 @@ public class QueryWiki {
 		while (results.hasNext()) {
 			QuerySolution result = results.nextSolution();
 			RDFNode spo = result.get("entity");
-			//entities.add(spo.toString());
-		//	System.out.println(spo.toString());
-		//	System.out.println(getEnglishAlias(vg,spo.toString()));
 			getChineseAlias(vg,spo.toString(),alias);
 		}
 		vqe.close();
