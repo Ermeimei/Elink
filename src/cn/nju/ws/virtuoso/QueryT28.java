@@ -23,27 +23,25 @@ public class QueryT28 {
 	private static String url; 
 	private static String usr;
 	private static String psd;
+	private static VirtGraph vg;
 	
 	public static void init() throws IOException{
 		ConfigureProperty.init();
 		url = VirtGraphLoader.getUrl();
 		usr = VirtGraphLoader.getUser();
 		psd = VirtGraphLoader.getPassword();
+		vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 	}
 	public static void main(String[] args) throws IOException {
 		QueryT28.init();
-		String en = "http://28/event#sponsor12004";
-		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
-		QueryT28.queryT28ByUri(en,predicateObject);
-		QueryT28.queryT28EventByUri(en,predicateObject);
-		Entity e = new Entity(en,predicateObject);
+		String en = "http://28/event#sponsor88165";
+		Entity e = queryT28ByUri(en);
 		System.out.println(e);
 		System.out.println("*****************");
-		System.out.println(e.getPredicate("event"));
 	}
 	
 	public static Map<String,String> queryT28Sponsor(){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
+	//	VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select distinct ?sponsor ?sponsor_name where {"+
 				"?event event:sponsor ?sponsor." +
 				"?sponsor event:actor1name ?sponsor_name."+
@@ -66,7 +64,7 @@ public class QueryT28 {
 	}
 	
 	public static Map<String,String> queryT28Bear(){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select distinct ?bear ?bear_name where {"+
 				"?event event:bear ?bear." +
 				"?bear event:actor2name ?bear_name."+
@@ -87,7 +85,7 @@ public class QueryT28 {
 		return bearTName;	
 	}
 	public static Map<String,String> queryT28Loc(){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select distinct ?loc ?loc_name where {"+
 				"?event event:loc ?loc." +
 				"?loc event:actiongeo_fullname ?loc_name."+
@@ -108,8 +106,14 @@ public class QueryT28 {
 		return locTName;	
 	}
 	
-	public static void queryT28ByUri(String uri,Map<String,List<String>> predicateObject){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
+	public static Entity queryT28ByUri(String uri){
+		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
+		queryT28PropertyByUri(uri,predicateObject);
+		queryT28EventByUri(uri,predicateObject);
+		return new Entity(uri,predicateObject);
+	}
+	public static void queryT28PropertyByUri(String uri,Map<String,List<String>> predicateObject){
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select * where {"+
 				"<" + uri + "> ?p ?o." +
 				"}";
@@ -137,7 +141,7 @@ public class QueryT28 {
 	}
 	
 	public static void queryT28EventByUri(String uri,Map<String,List<String>> predicateObject){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select * where {"+
 				"?event event:sponsor <" + uri + ">." +
 				"?event event:event_sentence ?sentence."+
@@ -150,6 +154,8 @@ public class QueryT28 {
 		//	RDFNode predicate = result.get("event");
 			String predicate = "event";
 			String object = result.get("sentence").toString();
+			if(object.lastIndexOf("@zh") != -1)
+				object = object.substring(0, object.lastIndexOf("@zh"));
 			if(predicateObject.containsKey("event")) {
     			List<String> list = predicateObject.get(predicate);
 				list.add(object);

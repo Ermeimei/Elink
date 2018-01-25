@@ -6,8 +6,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -17,10 +15,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.huaban.analysis.jieba.JiebaSegmenter;
+import com.huaban.analysis.jieba.SegToken;
+import com.huaban.analysis.jieba.JiebaSegmenter.SegMode;
+
 public class TfIdf {
-	/**
-	 * 文件名保存在list
-	 */
 	private static List<String> fileList = new ArrayList<String>(); 
 	/**
 	 * 所有文件tf结果.key:文件名,value:该文件tf
@@ -50,15 +49,7 @@ public class TfIdf {
     
 	
 	/**
-	 * 
-	* @Title: readDirs
-	* @Description: 递归获取文件
-	* @param @param filepath
-	* @param @return List<String>
-	* @param @throws FileNotFoundException
-	* @param @throws IOException    
-	* @return List<String>   
-	* @throws
+	* @Description: 递归获取文件 
 	 */
     private static List<String> readDirs(String filepath) throws FileNotFoundException, IOException {  
         try {  
@@ -85,15 +76,7 @@ public class TfIdf {
     }
     
     /**
-     * 
-    * @Title: readFile
     * @Description: 读取文件转化成string
-    * @param @param file
-    * @param @return String
-    * @param @throws FileNotFoundException
-    * @param @throws IOException    
-    * @return String   
-    * @throws
      */
     private static String readFile(String file) throws FileNotFoundException, IOException {  
         StringBuffer sb = new StringBuffer();  
@@ -107,65 +90,44 @@ public class TfIdf {
         br.close();  
         return sb.toString();  
     }  
-    
 
     /**
-     * 
-    * @Title: segString
     * @Description: 用ik进行字符串分词,统计各个词出现的次数
-    * @param @param content
-    * @param @return  Map<String, Integer>  
-    * @return Map<String,Integer>   
-    * @throws
      */
     private static Map<String, Integer> segString(String content){
         // 分词
-        Reader input = new StringReader(content);
         Map<String, Integer> words = new HashMap<String, Integer>();
-        // 智能分词关闭（对分词的精度影响很大）
-      /*  IKSegmenter iks = new IKSegmenter(input, true);
-        Lexeme lexeme = null;
-        try {
-            while ((lexeme = iks.next()) != null) {
-                if (words.containsKey(lexeme.getLexemeText())) {
-                    words.put(lexeme.getLexemeText(), words.get(lexeme.getLexemeText()) + 1);
-                } else {
-                    words.put(lexeme.getLexemeText(), 1);
-                }
-            }
-        }catch(IOException e) {
-            e.printStackTrace();
-        }*/
+        JiebaSegmenter segmenter = new JiebaSegmenter();
+        content = content.replaceAll("[\\pP+~$`^=|<>～｀＄＾＋＝｜＜＞￥×]" , "");
+        List<SegToken> tokenList = segmenter.process(content, SegMode.SEARCH);
+        for(int i=0;i<tokenList.size();i++) {
+        	if(words.containsKey(tokenList.get(i).word)) {
+        		words.put(tokenList.get(i).word, words.get(tokenList.get(i).word)+1);
+        	}
+        	else {
+        		words.put(tokenList.get(i).word, 1);
+        	}
+        }
         return words;
     }
     
     /**
-     * 
-    * @Title: segStr
     * @Description: 返回LinkedHashMap的分词
-    * @param @param content
-    * @param @return    
-    * @return Map<String,Integer>   
-    * @throws
      */
     public static Map<String, Integer> segStr(String content){
         // 分词
-        Reader input = new StringReader(content);
         Map<String, Integer> words = new LinkedHashMap<String, Integer>();
-        // 智能分词关闭（对分词的精度影响很大）
-   /*     IKSegmenter iks = new IKSegmenter(input, true);
-        Lexeme lexeme = null;
-        try {
-            while ((lexeme = iks.next()) != null) {
-                if (words.containsKey(lexeme.getLexemeText())) {
-                    words.put(lexeme.getLexemeText(), words.get(lexeme.getLexemeText()) + 1);
-                } else {
-                    words.put(lexeme.getLexemeText(), 1);
-                }
-            }
-        }catch(IOException e) {
-            e.printStackTrace();
-        }*/
+        JiebaSegmenter segmenter = new JiebaSegmenter();
+        content = content.replaceAll("[\\pP+~$`^=|<>～｀＄＾＋＝｜＜＞￥×]" , "");
+        List<SegToken> tokenList = segmenter.process(content, SegMode.SEARCH);
+        for(int i=0;i<tokenList.size();i++) {
+        	if(words.containsKey(tokenList.get(i).word)) {
+        		words.put(tokenList.get(i).word, words.get(tokenList.get(i).word)+1);
+        	}
+        	else {
+        		words.put(tokenList.get(i).word, 1);
+        	}
+        }
         return words;
     }
     
@@ -197,14 +159,8 @@ public class TfIdf {
     }
     
     /**
-     * 
-    * @Title: tf
     * @Description: 分词结果转化为tf,公式为:tf(w,d) = count(w, d) / size(d)
     * 即词w在文档d中出现次数count(w, d)和文档d中总词数size(d)的比值
-    * @param @param segWordsResult
-    * @param @return    
-    * @return HashMap<String,Double>   
-    * @throws
      */
     private static HashMap<String, Double> tf(Map<String, Integer> segWordsResult) { 
     	
@@ -222,13 +178,7 @@ public class TfIdf {
     }  
     
     /**
-     * 
-    * @Title: allTf
     * @Description: 得到所有文件的tf
-    * @param @param dir
-    * @param @return Map<String, Map<String, Double>>
-    * @return Map<String,Map<String,Double>>   
-    * @throws
      */
     public static Map<String, Map<String, Double>> allTf(String dir){
     	try{
@@ -248,13 +198,7 @@ public class TfIdf {
     }
     
     /**
-     * 
-    * @Title: wordSegCount
     * @Description: 返回分词结果,以LinkedHashMap保存
-    * @param @param dir
-    * @param @return    
-    * @return Map<String,Map<String,Integer>>   
-    * @throws
      */
     public static Map<String, Map<String, Integer>> wordSegCount(String dir){
     	try{
@@ -274,13 +218,7 @@ public class TfIdf {
     
     
     /**
-     * 
-    * @Title: containWordOfAllDocNumber
     * @Description: 统计包含单词的文档数  key:单词  value:包含该词的文档数
-    * @param @param allSegsMap
-    * @param @return    
-    * @return Map<String,Integer>   
-    * @throws
      */
     private static Map<String, Integer> containWordOfAllDocNumber(Map<String, Map<String, Integer>> allSegsMap){
     	if(allSegsMap==null || allSegsMap.size()==0){
@@ -309,13 +247,7 @@ public class TfIdf {
     }
     
     /**
-     * 
-    * @Title: idf
     * @Description: idf = log(n / docs(w, D)) 
-    * @param @param containWordOfAllDocNumberMap
-    * @param @return Map<String, Double> 
-    * @return Map<String,Double>   
-    * @throws
      */
     public static Map<String, Double> idf(Map<String, Map<String, Integer>> allSegsMap){
     	if(allSegsMap==null || allSegsMap.size()==0){
@@ -332,12 +264,7 @@ public class TfIdf {
     }
     
     /**
-     * 
-    * @Title: tfIdf
     * @Description: tf-idf
-    * @param @param tf,idf
-    * @return Map<String, Map<String, Double>>   
-    * @throws
      */
     public static Map<String, Map<String, Double>> tfIdf(Map<String, Map<String, Double>> allTfMap,Map<String, Double> idf){
     	
@@ -374,7 +301,7 @@ public class TfIdf {
     	Map<String, Double> idfMap=TfIdf.idf(allSegsMap);
     	Set<String> words=idfMap.keySet();
       	for(String word : words){
-     		System.out.println("word:"+word+"     tf:"+idfMap.get(word));
+     		System.out.println("word:"+word+"     idf:"+idfMap.get(word));
      	}
     	
       	System.out.println("tf-idf--------------------------------------");

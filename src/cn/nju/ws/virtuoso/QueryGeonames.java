@@ -1,10 +1,14 @@
 package cn.nju.ws.virtuoso;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
@@ -19,28 +23,53 @@ public class QueryGeonames {
 	private static String url; 
 	private static String usr;
 	private static String psd;
+	private static VirtGraph vg;
+	private static VirtGraph vg1;
 	
 	public static void init() throws IOException{
 		ConfigureProperty.init();
 		url = VirtGraphLoader.getUrl();
 		usr = VirtGraphLoader.getUser();
 		psd = VirtGraphLoader.getPassword();
+		vg = new VirtGraph(ConfigureProperty.GeonamesVirtGraph,url,usr,psd);
+		vg1 = new VirtGraph("http://cglink.com",url,usr,psd);
 	}
 	
 	public static void main(String[] args) throws IOException {
 		QueryGeonames.init();
-		String en = "http://sws.geonames.org/29278/";
+		queryGeonamesHavingZhAlternateName();
+	/*	List<String> bdbkEntities = new ArrayList<String>();
+		query("http://sws.geonames.org/4006164/", bdbkEntities);
+		System.out.println(bdbkEntities);*/
+	/*	List<String> geonamesEntities = new ArrayList<String>();
+		QueryGeonames.queryGeonamesByName("中国", geonamesEntities);
+		System.out.println(geonamesEntities);
+		String en = "http://sws.geonames.org/8388293/";
 		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
 		QueryGeonames.queryGeonamesByUri(en,predicateObject);
 		Entity e = new Entity(en,predicateObject);
 		System.out.println(e);
-		System.out.println("*****************");
+		System.out.println("*****************");*/
+	}
+	
+	public static void query(String geoUri,List<String> bdbkEntities){
+		String prefix = "PREFIX ns1: <http://www.w3.org/2002/07/owl#>";
+		String query =  prefix + "select distinct ?e where {"+
+				"?e ns1:sameAs <" + geoUri + ">." + 
+				"} limit 100";
+		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg1);
+		ResultSet results = vqe.execSelect();
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			String entity = result.get("e").toString();
+			bdbkEntities.add(entity);
+		}
+		vqe.close();
 	}
 	
 	public static void queryGeonamesByUri(String uri,Map<String,List<String>> predicateObject){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.GeonamesVirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.GeonamesVirtGraph,url,usr,psd);
 		String query = ConfigureProperty.GeonamesPrefix + "select ?p ?o where {"+
-		//"<http://sws.geonames.org/29278/> ?p ?o" +
 				"<" + uri + "> ?p ?o." +
 				"} limit 100";
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
@@ -61,5 +90,65 @@ public class QueryGeonames {
 		}
 		vqe.close();
 	}
-
+	
+	public static void queryGeonamesByName(String name,List<String> geonamesEntities){
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.GeonamesVirtGraph,url,usr,psd);
+		String query = ConfigureProperty.GeonamesPrefix + "select distinct ?e where {"+
+				"{?e gn:name ?name." + 
+                "?name bif:contains \"'" + name + "'\".}" +
+				"union"+
+                "{?e gn:alternateName ?name."+
+                "?name bif:contains \"'" + name + "'\".}" +
+                "filter (str(?name) = \"" + name + "\")"+
+				"} limit 100";
+		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
+		ResultSet results = vqe.execSelect();
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			String entity = result.get("e").toString();
+			geonamesEntities.add(entity);
+		}
+		vqe.close();
+	}
+	public static void queryGeonamesHavingZhAlternateName() throws IOException{
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.GeonamesVirtGraph,url,usr,psd);
+		String query = ConfigureProperty.GeonamesPrefix + "select ?e ?name where {"+
+                "?e gn:alternateName ?name"+
+                " filter (lang(?name) = 'zh')" +
+				"}";
+		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
+		ResultSet results = vqe.execSelect();
+		FileOutputStream out = new FileOutputStream(new File("geoname_zh.txt"));
+		FileOutputStream out1 = new FileOutputStream(new File("geoname_link.ttl"));
+		FileOutputStream out2 = new FileOutputStream(new File("geoname_zh_nolink.txt"));
+		String sameas = "http://www.w3.org/2002/07/owl#sameAs";
+		StringBuffer sb;
+		StringBuffer sb1;
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			String entity = result.get("e").toString();
+			String name = result.get("name").toString();
+			sb = new StringBuffer();	
+			sb.append(entity + "\t" + name + "\n");
+			out.write(sb.toString().getBytes("UTF-8"));
+			List<String> bdbkEntities = new ArrayList<String>();
+			query(entity, bdbkEntities);
+			if(bdbkEntities.size() == 0) {
+				sb1 = new StringBuffer();
+				sb1.append((entity + "\t" + name + "\n"));
+				out2.write(sb1.toString().getBytes("UTF-8"));
+			}
+			else {
+				sb1 = new StringBuffer();
+				for(String s:bdbkEntities) {
+					sb1.append(("<" + entity + "> <" + sameas + "> <" + s + "> .\n"));
+				}
+				out1.write(sb1.toString().getBytes("UTF-8"));
+			}
+		}
+		out.close();
+		out1.close();
+		out2.close();
+		vqe.close();
+	}
 }

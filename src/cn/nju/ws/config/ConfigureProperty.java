@@ -3,7 +3,6 @@ package cn.nju.ws.config;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.List;
 import java.util.Properties;
 
 import cn.nju.ws.virtuoso.VirtGraphLoader;
@@ -21,7 +20,10 @@ public class ConfigureProperty {
 	public static String WikidataVirtGraph;
 	public static String WikidataPrefix;
 	public static String[] BaiduLabelKeys;
+	private static boolean init_flag = false;
 	public static void init() throws IOException {
+		if(init_flag)
+			return;
         Properties pro = new Properties();
         InputStreamReader in = new InputStreamReader(new FileInputStream("config.properties"),"utf-8");
         pro.load(in);
@@ -42,5 +44,6 @@ public class ConfigureProperty {
         VirtGraphLoader.setUrl(VirtuosoServerUrl);
         VirtGraphLoader.setUser(VirtuosoServerUser);
         VirtGraphLoader.setPassword(VirtuosoServerPassword);
+        init_flag = true;
 	}
 }

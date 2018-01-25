@@ -22,16 +22,18 @@ public class QueryBaidu {
 	private static String url; 
 	private static String usr;
 	private static String psd;
+	private static VirtGraph vg;
 	
 	public static void init() throws IOException{
 		ConfigureProperty.init();
 		url = VirtGraphLoader.getUrl();
 		usr = VirtGraphLoader.getUser();
 		psd = VirtGraphLoader.getPassword();
+		vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
 	}
 	public static void main(String[] args) throws IOException {
 		QueryBaidu.init();
-		String en = "http://baike.baidu.com/A2262927";
+		String en = "http://baike.baidu.com/A3376536";
 		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
 		QueryBaidu.queryBaiduBaikeByUri(en,predicateObject);
 		Entity e = new Entity(en,predicateObject);
@@ -39,7 +41,7 @@ public class QueryBaidu {
 		System.out.println("*****************");
 	}
 	public static void queryBaiduBaikeByUri(String uri,Map<String,List<String>> predicateObject) {
-		VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
 		String query = ConfigureProperty.BdBkPrefix + "select * where {" + 
 		 "<" + uri + "> ?p ?o.}";
 		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
@@ -87,7 +89,7 @@ public class QueryBaidu {
 		}
 	}
 	public static void queryBaiduBaikeByName(String name,List<String> bdbkEntities){
-		VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
 		String query = ConfigureProperty.BdBkPrefix + "select *  where {" + 
 				 "?s gsbaidu:title \""+ name + "\"@zh." +
 				 "?s gsbaidu:subtitle ?p." +
@@ -101,16 +103,17 @@ public class QueryBaidu {
 			RDFNode entity = result.get("s");
 			RDFNode subtitle = result.get("p");
 			bdbkEntities.add(entity.toString() + "\t" + name + "\t" + subtitle.toString());
-			flag = true;
+		//	flag = true;
 		//	System.out.println(entity.toString() + "\t" + name + "\t" + subtitle.toString());	
 		}
-		//当名称无法完全匹配时，才用bif：contains。
+	//	System.out.println(name);
+		//当名称无法完全匹配时，才用bif:contains。有些时候会漏掉，所以还是需要后面这一步的。
 		if(!flag) {
 			query = ConfigureProperty.BdBkPrefix + "select * where {" + 
 					 "?s gsbaidu:title ?name." +
 					 "?s gsbaidu:subtitle ?p." +
 					 "?name bif:contains \"'" + name + "'\"." +
-					 "}limit 100";
+					 "}limit 10";
 			vqe = VirtuosoQueryExecutionFactory.create(query, vg);
 			results = vqe.execSelect();
 			while (results.hasNext()) {
@@ -123,11 +126,12 @@ public class QueryBaidu {
 				//	System.out.println(entity.toString() + "\t" + title.toString()+ "\t" + subtitle.toString());	
 			}
 		}
+		//当bif:contains也找不到结果时，在从别名中找，别名是从词条的infobox中抽出来的。
 		if(!flag) {
 			query = ConfigureProperty.BdBkPrefix + "select * where {" + 
 					 "?s gsbaidu:alt_label ?name." +
 					 "?name bif:contains \"'" + name + "'\"." +
-					 "}limit 100";
+					 "}limit 10";
 			vqe = VirtuosoQueryExecutionFactory.create(query, vg);
 			results = vqe.execSelect();
 			while (results.hasNext()) {
@@ -146,7 +150,7 @@ public class QueryBaidu {
 		}
 	}
 	public static void queryBaiduBaikeAliasByUri(String key) throws IOException {
-		VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
+		//VirtGraph vg = new VirtGraph(ConfigureProperty.BdBkVirtGraph,url,usr,psd);
 		String altLabel = "<http://ws.nju.edu.cn/geoscholar/baidu#alt_label>";
 		FileOutputStream out = new FileOutputStream(new File("alias_" + key + ".ttl"));
 		String query = ConfigureProperty.BdBkPrefix + "select ?s ?content  where {" + 
