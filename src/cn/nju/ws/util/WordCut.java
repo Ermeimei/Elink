@@ -1,33 +1,17 @@
 package cn.nju.ws.util;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.hankcs.algorithm.AhoCorasickDoubleArrayTrie;
 import com.huaban.analysis.jieba.JiebaSegmenter;
 import com.huaban.analysis.jieba.SegToken;
 
-import cn.nju.ws.data.MapDictionary;
 import com.huaban.analysis.jieba.JiebaSegmenter.SegMode;
 
 public class WordCut {
-	private static int getLastIndex(String name) {
-		MapDictionary.init();
-	    List<Integer> index = new ArrayList<Integer>();
-		MapDictionary.act.parseText(name, new AhoCorasickDoubleArrayTrie.IHit<String>()
-	    {
-	        @Override
-	        public void hit(int begin, int end, String value)
-	        {
-	        	index.add(end);
-	        //	System.out.printf("[%d:%d]=%s\n", begin, end, value);
-	        }
-	    });
-		return (index.size()==0)? 0:Collections.max(index);
-	}
+	
 	public static List<String> wordCut(String name) {
 	//	System.out.println(name);
         List<String> words = new ArrayList<String>();
@@ -55,9 +39,9 @@ public class WordCut {
 	//	System.out.println(words);
         //人名的分词处理,正确切分人名
 		name = name.replaceAll("[\\pP‘’“”'\"]", "");//去除标点符号
-        String s = name.substring(getLastIndex(name));
-        if(s.length()>1)
-        	words.add(s);
+		List<Integer> rs = DictUtil.getLastIndex(name,0);
+		if(rs.size() != 0)
+			words.add(name.substring(rs.get(0),rs.get(1)));
    //     System.out.println(words);
         JiebaSegmenter segmenter = new JiebaSegmenter();
      //   name = name.replaceAll("[‘’“”'\"]", "");//去除标点符号
