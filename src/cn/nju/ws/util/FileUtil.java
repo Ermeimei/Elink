@@ -19,7 +19,7 @@ public class FileUtil {
                 for (int i = 0; i < filelist.length; i++) {  
                     File readfile = new File(filepath + File.separator + filelist[i]);  
                     if (!readfile.isDirectory()) {  
-                        fileList .add(readfile.getAbsolutePath());  
+                        fileList.add(readfile.getAbsolutePath());  
                     } else if (readfile.isDirectory()) {  
                         readDirs(filepath + File.separator + filelist[i]);  
                     }  

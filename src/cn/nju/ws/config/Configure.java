@@ -22,6 +22,7 @@ public class Configure {
 	public static String WikidataPrefix;
 	public static String[] BaiduLabelKeys;
 	public static String LocDict;
+	public static String FilterDict;
 	public static MapDictionary WordCutDict;
 	public static MapDictionary NrDict;
 	public static MapDictionary DevDict;
@@ -51,6 +52,7 @@ public class Configure {
         String label = pro.getProperty("LabelKeys");
         BaiduLabelKeys = label.split(",");
         LocDict = pro.getProperty("LocDict");
+        FilterDict = pro.getProperty("FilterDict");
         WordCutDict = new MapDictionary(pro.getProperty("WordCutDict"));
         NrDict = new MapDictionary(pro.getProperty("NrDict"));
         DevDict = new MapDictionary(pro.getProperty("DevDict"));

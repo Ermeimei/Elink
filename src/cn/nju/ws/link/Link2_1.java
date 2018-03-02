@@ -31,6 +31,7 @@ public class Link2_1 {
 				strs.add(s);
 			}
 			else {
+				//额外输出了一行所有名称
 				if(strs.size()<3) {
 					strs = new ArrayList<String>();
 					continue;

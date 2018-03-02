@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ import org.apache.jena.rdf.model.RDFNode;
 import cn.nju.ws.config.Configure;
 import cn.nju.ws.data.Entity;
 import cn.nju.ws.nlp.NerFilter;
+import cn.nju.ws.util.PrintUtil;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoQueryExecution;
 import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
@@ -44,12 +46,12 @@ public class QueryT28 {
 		List<String> results = queryT28DistinctPredicateValues(predicate);
 		FileOutputStream out = new FileOutputStream(new File("data/T28/" + predicate + ".txt"));
 		out.write(ListUtil.listToString(results).getBytes("UTF-8"));
-		out.close();
+		out.close();*/
 		String en = "http://28/event#sponsor72939";
-		Entity e = queryT28ByUri(en);
-		System.out.println(e);
-		System.out.println("*****************");*/
-		String en = "http://28/event#sponsor23996";
+	//	Entity e = queryT28ByUri(en);
+		System.out.println(queryT28InformationByUri(en));
+	//	System.out.println("*****************");
+	/*	String en = "http://28/event#sponsor23996";
 		Set<String> ner = new HashSet<String>();
 		queryT28NerResultByUri(en,"sponsor",ner);
 		List<String> results = new ArrayList<String>();
@@ -59,7 +61,7 @@ public class QueryT28 {
 		}
 		for(String n:results) {
 			System.out.println(n);
-		}
+		}*/
 	}
 	public static void queryT28NerResult(String file) throws IOException{
 		FileOutputStream out = new FileOutputStream(new File(file));
@@ -79,6 +81,23 @@ public class QueryT28 {
 			out.write(sb.toString().getBytes("UTF-8"));
 		}
 		out.close();
+		vqe.close();
+	}
+	public static void queryT28NerResultByUri(String uri,String type,Set<String> nerResult){
+		String query = "select * where {"+
+				"?event event:"+ type + " <" + uri + ">." +
+				"?event event:ner_result ?ner."+
+				"}";
+		Query sparql = QueryFactory.create(Configure.T28Prefix+query);
+		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, vg);
+		ResultSet results = vqe.execSelect();
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			String object = result.get("ner").toString();
+			if(object.lastIndexOf("@zh") != -1)
+				object = object.substring(0, object.lastIndexOf("@zh"));
+				nerResult.add(object);
+    		}
 		vqe.close();
 	}
 	public static List<String> queryT28DistinctPredicateValues(String predicate){
@@ -101,7 +120,6 @@ public class QueryT28 {
 		
 	}
 	public static Map<String,String> queryT28Sponsor(){
-	//	VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select distinct ?sponsor ?sponsor_name where {"+
 				"?event event:sponsor ?sponsor." +
 				"?sponsor event:actor1name ?sponsor_name."+
@@ -124,7 +142,6 @@ public class QueryT28 {
 	}
 	
 	public static Map<String,String> queryT28Bear(){
-		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select distinct ?bear ?bear_name where {"+
 				"?event event:bear ?bear." +
 				"?bear event:actor2name ?bear_name."+
@@ -165,15 +182,57 @@ public class QueryT28 {
 		vqe.close();
 		return locTName;	
 	}
+	public static String queryT28InformationByUri(String uri){
+		StringBuffer sb = new StringBuffer();
+		sb.append(uri+"\t");
+		String type = getUriType(uri);
+		String property;
+		Entity e = queryT28ByUri(uri);
+		Map<String,List<String>> predicateObject = e.getPredicate_object();
+		if(type != null) {
+			switch (type) {
+			case "sponsor":
+				property = "actor1name"; break;
+			case "bear":
+				property = "actor2name"; break;
+			case "loc":
+				property = "actiongeo_fullname"; break;
+			default:
+				property = "";
+			}
+			if(predicateObject.containsKey(property)) {
+				sb.append(PrintUtil.listToString(predicateObject.get(property)," "));
+				sb.append("\n");
+			}
+			sb.append("**********************************************************************\n");
+			predicateObject = queryT28EventByUri(uri,type);
+			Iterator<String> iter = predicateObject.keySet().iterator();
+			//只打印一个事件句
+		 	if (iter.hasNext()) {
+				String pred = iter.next();
+				sb.append(pred + ":\t");
+				sb.append(predicateObject.get(pred).get(0)+"\n");
+				sb.append("-----------------------------------------------\n");
+			}
+		}
+		sb.append("**********************************************************************\n");
+		return sb.toString();
+	}
 	
+	static String getUriType(String uri) {
+		String type;
+		if(uri.contains("sponsor"))
+			type = "sponsor";
+		else if(uri.contains("bear"))
+			type = "bear";
+		else if(uri.contains("loc"))
+			type = "loc";
+		else
+			type = null;
+		return type;
+	}
 	public static Entity queryT28ByUri(String uri){
 		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
-		queryT28PropertyByUri(uri,predicateObject);
-	//	queryT28NerResultByUri(uri,predicateObject);
-		queryT28EventByUri(uri,predicateObject);
-		return new Entity(uri,predicateObject);
-	}
-	public static void queryT28PropertyByUri(String uri,Map<String,List<String>> predicateObject){
 		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select * where {"+
 				"<" + uri + "> ?p ?o." +
@@ -199,12 +258,14 @@ public class QueryT28 {
     		}
 		}
 		vqe.close();
+		return new Entity(uri,predicateObject);
 	}
 	
-	public static void queryT28EventByUri(String uri,Map<String,List<String>> predicateObject){
+	public static Map<String,List<String>> queryT28EventByUri(String uri,String type){
+		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
 		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
 		String query = "select * where {"+
-				"?event event:sponsor <" + uri + ">." +
+				"?event event:"+ type + " <" + uri + ">." +
 				"?event event:event_sentence ?sentence."+
 				"}";
 		Query sparql = QueryFactory.create(Configure.T28Prefix+query);
@@ -228,23 +289,6 @@ public class QueryT28 {
     		}
 		}
 		vqe.close();
-	}
-	public static void queryT28NerResultByUri(String uri,String type,Set<String> nerResult){
-		//VirtGraph vg = new VirtGraph(ConfigureProperty.T28VirtGraph,url,usr,psd);
-		String query = "select * where {"+
-				"?event event:"+ type + " <" + uri + ">." +
-				"?event event:ner_result ?ner."+
-				"}";
-		Query sparql = QueryFactory.create(Configure.T28Prefix+query);
-		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(sparql, vg);
-		ResultSet results = vqe.execSelect();
-		while (results.hasNext()) {
-			QuerySolution result = results.nextSolution();
-			String object = result.get("ner").toString();
-			if(object.lastIndexOf("@zh") != -1)
-				object = object.substring(0, object.lastIndexOf("@zh"));
-			nerResult.add(object);
-    		}
-		vqe.close();
+		return predicateObject;
 	}
 }

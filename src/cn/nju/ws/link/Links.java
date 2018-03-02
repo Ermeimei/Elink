@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Set;
 
 import cn.nju.ws.data.Entity;
-import cn.nju.ws.distance.Distance;
+import cn.nju.ws.sim.Distance;
 import cn.nju.ws.util.FileUtil;
 import cn.nju.ws.util.ArraySort;
 import cn.nju.ws.virtuoso.QueryBaidu;

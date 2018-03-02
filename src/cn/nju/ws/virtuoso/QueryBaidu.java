@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +15,7 @@ import org.apache.jena.rdf.model.RDFNode;
 
 import cn.nju.ws.config.Configure;
 import cn.nju.ws.data.Entity;
+import cn.nju.ws.util.PrintUtil;
 import virtuoso.jena.driver.VirtGraph;
 import virtuoso.jena.driver.VirtuosoQueryExecution;
 import virtuoso.jena.driver.VirtuosoQueryExecutionFactory;
@@ -33,17 +35,18 @@ public class QueryBaidu {
 	}
 	public static void main(String[] args) throws IOException {
 		QueryBaidu.init();
-	/*	String en = "http://baike.baidu.com/A2342137";
-		Entity e = QueryBaidu.queryBaiduBaikeByUri(en);
-		System.out.println(e);
-		System.out.println("*****************");*/
-		List<String> bdbkEntities = new ArrayList<String>();
+		String en = "http://baike.baidu.com/A2342137";
+	//	Entity e = QueryBaidu.queryBaiduBaikeByUri(en);
+	//	System.out.println(e);
+	//	System.out.println("*****************");
+		System.out.println(QueryBaidu.queryBaiduBaikeInformationByUri(en));
+		/*List<String> bdbkEntities = new ArrayList<String>();
 		queryBaiduBaikeByName("习近平", bdbkEntities);
 		if(bdbkEntities.size() > 0) {
 			for(String bdbke:bdbkEntities) {
 				System.out.println(bdbke.split("\t")[0]);
 			}
-		}
+		}*/
 	}
 	public static Entity queryBaiduBaikeByUri(String uri) {
 		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
@@ -55,8 +58,8 @@ public class QueryBaidu {
 		while (results.hasNext()) {
 			QuerySolution result = results.nextSolution();
 			String predicate = result.get("p").toString();
-			String object = result.get("o").toString();
-			if(predicate.indexOf("infoboxItem") == -1 && predicate.indexOf("page_url") == -1) {
+			String object = result.get("o").toString().replaceAll("@zh", "");
+			if(predicate.indexOf("infoboxItem") == -1) {
 				if(predicate.lastIndexOf("#") != -1 ) {
 					predicate = predicate.substring(predicate.lastIndexOf("#")+1);
 				}
@@ -71,29 +74,7 @@ public class QueryBaidu {
 	    		}
 			}
 		}
-		query = Configure.BdBkPrefix + "select ?info_prop,?content where {" + 
-		"<" + uri + "> gsbaidu:infoboxItem ?o." + 
-		 "?o ns1:description ?info_prop." +
-		 "?o gsbaidu:infoboxContent ?info_content." +
-		 "?info_content ns1:description ?content." +
-		 "}limit 100";
-		vqe = VirtuosoQueryExecutionFactory.create(query, vg);
-		results = vqe.execSelect();
-		while (results.hasNext()) {
-			QuerySolution result = results.nextSolution();
-			String predicate = result.get("info_prop").toString();
-			String object = result.get("content").toString();
-			if(predicateObject.containsKey(predicate)) {
-    			List<String> list = predicateObject.get(predicate);
-				list.add(object);
-    		}
-    		else {
-    			List<String> list = new ArrayList<String>();
-				list.add(object);
-				predicateObject.put(predicate, list);
-    		}
-		}
-		vqe.close();
+	//	predicateObject.putAll(queryBaiduBaikeInfoboxByUri(uri));
 		return new Entity(uri,predicateObject);
 	}
 	public static void queryBaiduBaikeByNameGeo(String name,List<String> bdbkEntities){
@@ -210,5 +191,66 @@ public class QueryBaidu {
 		}
 		out.close();
 		vqe.close();
+	}
+	public static String queryBaiduBaikeInformationByUri(String uri) {
+		Entity e = QueryBaidu.queryBaiduBaikeByUri(uri);
+		StringBuffer sb = new StringBuffer();
+		sb.append(e.getSubject()+"\n");
+		sb.append("**********************************************************************\n");
+		Map<String,List<String>> predicateObject = e.getPredicate_object();
+		if(predicateObject.containsKey("title")) {
+			sb.append("标题:\t");
+			sb.append(PrintUtil.listToString(predicateObject.get("title")," "));
+			sb.append("\n");
+			sb.append("-----------------------------------------------\n");
+		}
+		if(predicateObject.containsKey("subtitle")) {
+			sb.append("副标题:\t");
+			sb.append(PrintUtil.listToString(predicateObject.get("subtitle")," "));
+			sb.append("\n");
+			sb.append("-----------------------------------------------\n");
+		}
+		if(predicateObject.containsKey("summary")) {
+			sb.append("摘要:\t");
+			sb.append(PrintUtil.listToString(predicateObject.get("summary")," "));
+			sb.append("\n");
+			sb.append("-----------------------------------------------\n");
+		}else{
+			sb.append(PrintUtil.mapToString(queryBaiduBaikeInfoboxByUri(uri)));
+		}
+		if(predicateObject.containsKey("page_url")) {
+			sb.append("网址:\t");
+			sb.append(PrintUtil.listToString(predicateObject.get("page_url")," "));
+			sb.append("\n");
+		}
+		sb.append("**********************************************************************\n");
+		return sb.toString();	
+	}
+	public static Map<String,List<String>> queryBaiduBaikeInfoboxByUri(String uri) {
+		String query = Configure.BdBkPrefix + "select ?info_prop,?content where {" + 
+				"<" + uri + "> gsbaidu:infoboxItem ?o." + 
+				 "?o ns1:description ?info_prop." +
+				 "?o gsbaidu:infoboxContent ?info_content." +
+				 "?info_content ns1:description ?content." +
+				 "}limit 100";
+		VirtuosoQueryExecution vqe = VirtuosoQueryExecutionFactory.create(query, vg);
+		ResultSet results = vqe.execSelect();
+		Map<String,List<String>> predicateObject = new HashMap<String,List<String>>();
+		while (results.hasNext()) {
+			QuerySolution result = results.nextSolution();
+			String predicate = result.get("info_prop").toString();
+			String object = result.get("content").toString().replaceAll("@zh", "");
+			if(predicateObject.containsKey(predicate)) {
+				List<String> list = predicateObject.get(predicate);
+				list.add(object);
+			}
+			else {
+				List<String> list = new ArrayList<String>();
+				list.add(object);
+				predicateObject.put(predicate, list);
+			}
+		}
+		vqe.close();
+		return predicateObject;
 	}
 }

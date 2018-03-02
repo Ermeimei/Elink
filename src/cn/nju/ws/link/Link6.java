@@ -104,7 +104,7 @@ public class Link6 {
 			}
 			out.close();
 		}
-		sb.append(PrintUtil.listToString(bdbkEntities));
+		sb.append(PrintUtil.listToString(bdbkEntities,"\n"));
 		sb.append("***********************\n");	
 		return sb.toString();
 	}

@@ -9,10 +9,10 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class LinkResultDisplay {
+public class Link5_1 {
 	/* 把链接结果展示出来，便于查看链接结果的准确性。
 	 */
-	static String folder = "data/result2_1/";
+	static String folder = "data/result5_1/";
 	static String[] type = {"sponsor","bear","loc"};
 	public static void main(String[] args) throws IOException {
 		/*int j = 2;
@@ -22,14 +22,12 @@ public class LinkResultDisplay {
 		for(int i = 1; i < k;i++)
 			display("data/result2/" + type[j] + "_link_" + (i*1000) + ".txt",out);
 		out.close();*/
-		int j = 1;
-		int k = 28;
-		FileOutputStream out = new FileOutputStream(new File(folder + type[j] + "_link_2.txt"));
-		display("data/result2/" + type[j] + "_link_1.txt",out);
+		int j = 2;
+		int k = 7;
+		FileOutputStream out = new FileOutputStream(new File(folder + type[j] + "_link_new.txt"));
+		display("data/result5/" + type[j] + "_link_1.txt",out);
 		for(int i = 1; i < k;i++)
-			display("data/result2/" + type[j] + "_link_" + (i*1000) + ".txt",out);
-		display("data/result2/" + type[j] + "_link_27471.txt",out);
-		display("data/result2/" + type[j] + "_link_28000.txt",out);
+			display("data/result5/" + type[j] + "_link_" + (i*1000) + ".txt",out);
 		out.close();
 	/*	int j = 0;
 		int k = 18;
@@ -52,27 +50,19 @@ public class LinkResultDisplay {
 				strs.add(s);
 			}
 			else {
-				if(strs.size()<3) {
+				//相比result2没有别名那一行
+				if(strs.size()<2) {
 					strs = new ArrayList<String>();
 					continue;
 				}
-				if(strs.get(0).split("\t")[1].length() < 2) {//过滤掉实体名称长度为1的
-					strs = new ArrayList<String>();
-					continue;
-				}
-				int count = 0;
 				out.write((strs.get(0)+"\n").getBytes("UTF-8"));
-			//	out.write((strs.get(1)+"\n").getBytes("UTF-8"));
 				List<String> links = new ArrayList<String>();
-				for(int k = 2;k<strs.size();k++) {
+				for(int k = 1;k<strs.size();k++) {
 					String t = strs.get(k).split("\t")[0];
 					if(!links.contains(t)) {
 						links.add(t);
-						count++;
 						out.write((strs.get(k)+"\n").getBytes("UTF-8"));
 					}
-					if(count == 5)
-						break;
 				}
 				out.write((s+"\n").getBytes("UTF-8"));
 				strs = new ArrayList<String>();

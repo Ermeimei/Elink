@@ -1,6 +1,6 @@
 package cn.nju.ws.test;
 
-import cn.nju.ws.distance.Distance;
+import cn.nju.ws.sim.Distance;
 import junit.framework.TestCase;
 
 public class TestDistance extends TestCase{

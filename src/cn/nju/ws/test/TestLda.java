@@ -3,9 +3,9 @@ package cn.nju.ws.test;
 import junit.framework.TestCase;
 import java.util.Map;
 
-import cn.nju.ws.lda.Corpus;
-import cn.nju.ws.lda.LdaGibbsSampler;
-import cn.nju.ws.lda.LdaUtil;
+import cn.nju.ws.sim.Corpus;
+import cn.nju.ws.sim.LdaGibbsSampler;
+import cn.nju.ws.sim.LdaUtil;
 
 public class TestLda extends TestCase {
     public void testAll() throws Exception {
